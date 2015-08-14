@@ -31,7 +31,7 @@ class GitAutoDeploy(BaseHTTPRequestHandler):
 			for repository in myClass.config['repositories']:
 				if(not os.path.isdir(repository['path'])):
 					print "Directory %s not found" % repository['path']
-					call(['git clone '+repository['url']+' '+repository['path']], shell=True)
+					call(['git clone --recursive '+repository['url']+' '+repository['path']], shell=True)
 					if(not os.path.isdir(repository['path'])):
 						print "Unable to clone repository %s" % repository['url']
 						sys.exit(2)
@@ -142,7 +142,7 @@ class GitAutoDeploy(BaseHTTPRequestHandler):
 		if(not self.quiet):
 			print "\nPost push request received"
 			print 'Updating ' + path
-		res = call(['sleep 5; cd "' + path + '" && git fetch origin ; git update-index --refresh &> /dev/null ; git reset --hard origin/' + branch + ';' + script], shell=True)
+		res = call(['sleep 5; cd "' + path + '" && unset GIT_DIR && git fetch origin && git update-index --refresh && git reset --hard origin/' + branch + ' && git submodule init && git submodule update' + ';' + script], shell=True)
 		call(['echo "Pull result: ' + str(res) + '"'], shell=True)
 		return res
 
@@ -201,7 +201,9 @@ class GitAutoDeployMain:
 			print 'Github & Gitlab Autodeploy Service v 0.1 started in daemon mode'
 
 		try:
-			self.server = HTTPServer(('', GitAutoDeploy.getConfig()['port']), GitAutoDeploy)
+			self.server = HTTPServer((GitAutoDeploy.getConfig()['host'], GitAutoDeploy.getConfig()['port']), GitAutoDeploy)
+			sa = self.server.socket.getsockname()
+			print "Listeing on", sa[0], "port", sa[1]
 			self.server.serve_forever()
 		except socket.error, e:
 			if(not GitAutoDeploy.quiet and not GitAutoDeploy.daemon):
