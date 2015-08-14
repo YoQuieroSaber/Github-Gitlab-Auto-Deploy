@@ -56,7 +56,8 @@ class GitAutoDeploy(BaseHTTPRequestHandler):
 				if self.lock(repo['path']):
 					try:
 						n = 4
-						while 0 < n and 0 != self.pull(repo['path'], repo['branch']):
+						call(['echo "script "'+repo["script"]], shell=True);
+						while 0 < n and 0 != self.pull(repo['path'], repo['branch'],repo['script']):
 							--n
 						if 0 < n:
 							self.deploy(repo['path'])
@@ -117,7 +118,8 @@ class GitAutoDeploy(BaseHTTPRequestHandler):
 			if(repository['url'] == repoUrl):
 				res.append({
 					'path': repository['path'],
-					'branch': ('branch' in repository) and repository['branch'] or 'master'
+					'branch': ('branch' in repository) and repository['branch'] or 'master',
+					'script': repository['script']
 				})
 		return res
 
@@ -136,11 +138,11 @@ class GitAutoDeploy(BaseHTTPRequestHandler):
 	def clearLock(myClass, path):
 		call(['sh clear_lock.sh "' + path + '"'], shell=True)
 
-	def pull(self, path, branch):
+	def pull(self, path, branch,script):
 		if(not self.quiet):
 			print "\nPost push request received"
 			print 'Updating ' + path
-		res = call(['sleep 5; cd "' + path + '" && git fetch origin ; git update-index --refresh &> /dev/null ; git reset --hard origin/' + branch], shell=True)
+		res = call(['sleep 5; cd "' + path + '" && git fetch origin ; git update-index --refresh &> /dev/null ; git reset --hard origin/' + branch + ';' + script], shell=True)
 		call(['echo "Pull result: ' + str(res) + '"'], shell=True)
 		return res
 
